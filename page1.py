@@ -1,38 +1,29 @@
 import streamlit as st
 import pandas as pd
+import os
 
-if "bmi_data" not in st.session_state:
-        st.session_state["bmi_data"] = []
+# Cargar datos desde CSV si existe
+if 'bmi' not in st.session_state:
+    if os.path.exists("BMI.csv"):
+        st.session_state['bmi'] = pd.read_csv("BMI.csv", index_col=0)
+    else:
+        st.session_state['bmi'] = pd.DataFrame(columns=["weight", "height", "BMI"])
 
-st.title("📏MBI Tracker")
+st.title("📏 BMI Tracker")
 
-altura = st.number_input("Enter your height (cm)", min_value=1)
-peso = st.number_input("Enter your weight (kg)", min_value=1, max_value=100)
+# Inputs
+peso = st.number_input("Introduce tu peso (kg)", min_value=1, value=50)
+altura = st.number_input("Introduce tu altura (cm)", min_value=1, value=100)
 
-resultado = None
+# Calcular y guardar BMI
+if st.button("Calcula tu BMI", type="primary"):
+    BMI = peso / ((altura / 100) ** 2)
+    new_row = {"peso": peso, "altura": altura, "BMI": round(BMI, 2)}
+    st.session_state['bmi'] = pd.concat([st.session_state['bmi'], pd.DataFrame([new_row])],ignore_index=True)
+    st.session_state['bmi'].to_csv("BMI.csv")
+    st.success(f"Tu BMI es: {round(BMI, 2)}")
+    st.write("✅Tu BMI fue guardado")
 
-calcular = st.button("Calcular", type="primary")
-if calcular:
-    resultado = peso / ((altura / 100) ** 2) 
-    st.success("Tu BMI es: " + str(round(resultado, 2)))  
-
-
-st.write("✅Tu BMI fue guardado")
-
-st.subheader("📊BMI Progress")
-
-if resultado is not None:
-    data_df = pd.DataFrame({"BMI": [resultado]}) 
-    st.session_state["bmi_data"].append({"BMI": resultado})
-    data_df = pd.DataFrame(st.session_state["bmi_data"])
-    st.data_editor(
-        data_df,
-        column_config={
-            "BMI": st.column_config.AreaChartColumn("BMI", width="medium",help="Tus BMI", y_min=0,y_max=100,),
-        },
-        hide_index=True,
-    )
-
-    
-
-
+# Progreso del BMI
+st.subheader("📈 BMI Progreso")
+st.line_chart(st.session_state['bmi'], y="BMI")
